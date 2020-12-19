@@ -29,37 +29,51 @@ public class smolParser {
 }
 class parser{
     String[][] transitionTable;
-    String[][] grammarRules= new String[4][2];
+    String[][] grammarRules= new String[21][2];
     String inputString;
+    String[] tokenArray;
 
     public int LrParser(String inputString){
         Stack<String> stack= new Stack<>();
         this.inputString=inputString;
+         tokenArray= this.inputString.split(" ");
         int tokenCount=0;
         String operation;
 
-        char token = getToken(tokenCount++);
-        if(token =='\u0000'){
+        String token = getToken(tokenCount++);
+        if(token.equals("\0")){
             return -1;
         }
         stack.push("1");
         while(true){
             //System.out.println(stack.toString());
             int currentState= Integer.parseInt(stack.peek());
+            //currentState--;
             int tokenColumn = columnOf(transitionTable[0],""+token);
             if(transitionTable[currentState][tokenColumn].charAt(0)=='s'){          //shift
                 operation = transitionTable[currentState][tokenColumn];
                 stack.push(""+token);
-                stack.push(""+operation.charAt(1));
+                if(operation.length()>2){
+                    stack.push(""+operation.charAt(1)+""+operation.charAt(2));
+                }
+                else {
+                    stack.push("" + operation.charAt(1));
+                }
                 token = getToken(tokenCount++);
-                if(token =='\u0000'){
+                if(token.equals("\0")){
                     return -1;
                 }
                 //System.out.println(stack.toString());
             }
             else if(transitionTable[currentState][tokenColumn].charAt(0)=='r'){
                 operation = transitionTable[currentState][tokenColumn];
-                int grammarRuleNumber = Integer.parseInt(""+operation.charAt(1));
+                int grammarRuleNumber;
+                if(operation.length()>2) {
+                    grammarRuleNumber = Integer.parseInt(""+operation.charAt(1)+""+operation.charAt(2));
+                }
+                else{
+                    grammarRuleNumber = Integer.parseInt(""+operation.charAt(1));
+                }
                 grammarRuleNumber--;
                 String LHS = grammarRules[grammarRuleNumber][0];
                 String RHS = grammarRules[grammarRuleNumber][1];
@@ -69,7 +83,16 @@ class parser{
                 currentState = Integer.parseInt(stack.peek());
                 tokenColumn = columnOf(transitionTable[0],LHS);
                 stack.push(LHS);
-                stack.push(""+transitionTable[currentState][tokenColumn].charAt(1));     //Transition on State when char = reduction char
+                if(transitionTable[currentState][tokenColumn].length()>2) {
+                    System.out.println(tokenColumn);
+                    System.out.println(token);
+                    stack.push(""+transitionTable[currentState][tokenColumn].charAt(1)+""+transitionTable[currentState][tokenColumn].charAt(2));     //Transition on State when char = reduction char
+                }
+                else{
+                    //System.out.println(token);
+                    System.out.println(transitionTable[currentState][tokenColumn].charAt(1));
+                    stack.push(""+transitionTable[currentState][tokenColumn].charAt(1));     //Transition on State when char = reduction char
+                }
             }
             else if(transitionTable[currentState][tokenColumn].equals("acc")) {
                 return 1;
@@ -83,7 +106,7 @@ class parser{
     public String[][] populateTransitionTable(){
         try {
             //open a file
-            File file = new File("C:\\Users\\Laraib Zafar\\IdeaProjects\\BabyBornParser\\src\\Grammar.txt");
+            File file = new File("C:\\Users\\Laraib Zafar\\IdeaProjects\\BabyBornParser\\src\\TinyGrammar.txt");
             FileReader fr=new FileReader(file);
             BufferedReader br=new BufferedReader(fr);
             StringBuffer sb=new StringBuffer();
@@ -95,7 +118,7 @@ class parser{
             readLine=br.readLine();
             String[] nonTerminalSymbols = readLine.split(" ");
 
-            transitionTable = new String[10][terminalSymbols.length+nonTerminalSymbols.length];
+            transitionTable = new String[43][terminalSymbols.length+nonTerminalSymbols.length];
             transitionTable = populateSymbols(transitionTable,terminalSymbols, nonTerminalSymbols);
 
             //State Transition
@@ -104,10 +127,21 @@ class parser{
             while(readLine!=null &&readLine.length()>0){
                 String[] stateTransition = readLine.split(" ");
                 int initialState = Integer.parseInt(stateTransition[0]);
+                initialState++;
                 String transitionSymbol = stateTransition[1];
                 String action = stateTransition[2];
-                int columnOfSymbol = columnOf(transitionTable[0],transitionSymbol);
-                transitionTable[initialState][columnOfSymbol]=action;
+                if(!action.equals("acc")){
+                String actionNumber =action.substring(1);
+                int actualActionNumber = Integer.parseInt(actionNumber);
+                actualActionNumber++;
+                    int columnOfSymbol = columnOf(transitionTable[0],transitionSymbol);
+                    transitionTable[initialState][columnOfSymbol]=action.charAt(0)+""+actualActionNumber;
+                }
+               else{
+                    int columnOfSymbol = columnOf(transitionTable[0],transitionSymbol);
+                    transitionTable[initialState][columnOfSymbol]=action;
+
+                }
                 readLine=br.readLine();
             }
             //Grammar Rules
@@ -176,17 +210,18 @@ class parser{
             }
         }
         if(index ==-1){
+            System.out.println(transitionSymbol);
             System.out.println("Unknown Symbol encountered in a transition");
             exit(0);
         }
         return index;
     }
 
-    public char getToken(int tokenCount) {
-        if (tokenCount < inputString.length()) {
-            return inputString.charAt(tokenCount);
+    public String getToken(int tokenCount) {
+        if (tokenCount < tokenArray.length) {
+            return tokenArray[tokenCount];
         } else {
-            return '\u0000';
+            return "\0";
         }
     }
 }
